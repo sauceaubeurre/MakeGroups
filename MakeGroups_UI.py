@@ -90,7 +90,7 @@ class Application(tk.Tk):
             self.chemin_fichier = chemin
             self.niveaux = compter_niveaux(self.df)
             self.nb_classes = len(self.df['Classe'].unique())
-            self.nb_groupes = 3 if self.nb_classes == 2 else 4 if self.nb_classes == 3 else 1
+            self.nb_groupes = self.nb_classes+1
             self.afficher_resume()
             self.afficher_champs_repartition()
         except Exception as e:
@@ -129,14 +129,14 @@ class Application(tk.Tk):
         table = ttk.Frame(self.frame_saisie)
         table.pack()
 
-        entetes = ["Niveau \\ Groupe"] + [f"Groupe {i+1}" for i in range(self.nb_groupes)]
+        entetes = ["Effectif"] + [f"Groupe {i+1}" for i in range(self.nb_groupes)]
         for col, entete in enumerate(entetes):
             label = ttk.Label(table, text=entete, font=("Segoe UI", 11, "bold"), anchor="center")
             label.grid(row=0, column=col, padx=6, pady=5)
 
         self.entrees = {}
         for row, (niveau, effectif) in enumerate(self.niveaux.items(), 1):
-            lbl = ttk.Label(table, text=f"{niveau} ({effectif})", font=("Segoe UI", 11), anchor="center")
+            lbl = ttk.Label(table, text=f"Niveau {niveau} : {effectif} élève(s)", font=("Segoe UI", 11), anchor="center")
             lbl.grid(row=row, column=0, padx=5, pady=5)
             self.entrees[niveau] = []
             for col in range(self.nb_groupes - 1):  # Saisie pour tous sauf le dernier
@@ -190,15 +190,15 @@ class Application(tk.Tk):
             # Création de la fenêtre récap
             recap = tk.Toplevel(self)
             recap.title("Récapitulatif des groupes")
-            recap.geometry("650x470")
+            recap.state('zoomed')
             recap.configure(bg="#F7F9FA")
 
             ttk.Label(recap, text="Tableau récapitulatif avant génération des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
             for i, g in enumerate(groupes):
                 resume = f"Groupe {i+1} : {len(g)} élèves  |  "
-                niveaux_liste = [f"Niveau {n} : {len(g[g['Niveau']==n])}" for n in sorted(self.niveaux)]
+                niveaux_liste = [f"Niveau {n} : {len(g[g['Niveau']==n])} élève(s)" for n in sorted(self.niveaux)]
                 resume += " / ".join(niveaux_liste)
-                classes_liste = [f"Classe {c} : {len(g[g['Classe']==c])}" for c in sorted(self.df['Classe'].unique())]
+                classes_liste = [f"Classe {c} : {len(g[g['Classe']==c])}élève(s)" for c in sorted(self.df['Classe'].unique())]
                 resume += "  |  " + " / ".join(classes_liste)
                 lbl = ttk.Label(recap, text=resume, background="#F7F9FA")
                 lbl.pack(anchor="w", padx=15)
