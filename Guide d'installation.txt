@@ -1,0 +1,33 @@
+Guide d’installation MakeGroups V3)
+
+1. Installer Python
+
+    Va sur https://www.python.org/downloads/
+
+    Clique sur Download Python
+
+    Ouvre le fichier téléchargé, coche Add Python to PATH avant de cliquer sur “Install Now”.
+
+2. Installer les modules Python nécessaire
+
+	Ouvre une invite de commande en appuyant sur Windows + R et en écrivant : cmd
+
+	Tape dans l'invite de commande : pip install pandas pillow openpyxl
+
+3. Télécharge le programme
+
+	Va sur la page GitHub du projet : https://github.com/sauceaubeurre/MakeGroups
+
+    Clique sur Code > Download ZIP
+
+    Décompresse le zip dans un dossier
+
+4. Lancer le programme
+
+	Double-clique sur le fichier MakeGroups_UI.py
+	
+6. Utilisation
+
+    Clique sur “Ouvrir un fichier CSV” et choisis ta liste d’élèves. Le fichier doit être un CSV et utiliser "," comme séparateur.
+
+    Suis les instructions à l’écran (voir le README pour plus de détails).
