@@ -26,7 +26,9 @@ from MakeGroups import (
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("MakeGroups V3 - Répartition intelligente")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.iconbitmap(os.path.join(script_dir, "icone.ico"))
+        self.title("Outil de suivi des groupes de besoins")
         self.state('zoomed')  # Plein écran au démarrage
         self.configure(bg="#F7F9FA")
 
@@ -55,7 +57,7 @@ class Application(tk.Tk):
         self.logo_frame.pack(fill="x", pady=(20, 10))
         self.afficher_logo()
 
-        titre = ttk.Label(self, text="Répartition automatique des groupes de 6e", style="Title.TLabel", background="#F7F9FA")
+        titre = ttk.Label(self, text="Création des groupes de 6e", style="Title.TLabel", background="#F7F9FA")
         titre.pack()
 
         btn_ouvrir = ttk.Button(self, text="Ouvrir un fichier CSV", command=self.ouvrir_fichier_csv)
@@ -66,16 +68,23 @@ class Application(tk.Tk):
             widget.destroy()
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            logo_path = os.path.join(script_dir, "logo.png")
-            img = Image.open(logo_path)
-            img = img.resize((120, 120), Image.Resampling.LANCZOS)
-            self.logo_image = ImageTk.PhotoImage(img)
-            logo_label = tk.Label(self.logo_frame, image=self.logo_image, bg="#F7F9FA", cursor="hand2")
+            logo_labo_path = os.path.join(script_dir, "logo_labo.png")
+            logo_college_path = os.path.join(script_dir, "logo_college.png")
+            img_labo = Image.open(logo_labo_path)
+            img_college = Image.open(logo_college_path)
+            img_labo = img_labo.resize((120, 120), Image.Resampling.LANCZOS)
+            img_college = img_college.resize((120, 120), Image.Resampling.LANCZOS)
+            self.logo_labo_image = ImageTk.PhotoImage(img_labo)
+            self.logo_college_image = ImageTk.PhotoImage(img_college)
+            logo_labo_label = tk.Label(self.logo_frame, image=self.logo_labo_image, bg="#F7F9FA", cursor="hand2")
+            logo_college_label = tk.Label(self.logo_frame, image=self.logo_college_image, bg="#F7F9FA", cursor="hand2")
         except Exception as e:
             print("Erreur lors de l'affichage du logo :", e)
-            logo_label = tk.Label(self.logo_frame, text="LOGO", bg="#F7F9FA", font=("Segoe UI", 17, "bold"), fg="#AAAAAA", cursor="hand2", width=10, height=6)
-        logo_label.pack()
-        logo_label.bind("<Button-1>", lambda e: webbrowser.open_new_tab("https://etab.ac-reunion.fr/clg-cambuston/"))
+            logo_labo_label = tk.Label(self.logo_frame, text="LOGO", bg="#F7F9FA", font=("Segoe UI", 17, "bold"), fg="#AAAAAA", cursor="hand2", width=10, height=6)
+            logo_college_label = tk.Label(self.logo_frame, text="LOGO", bg="#F7F9FA", font=("Segoe UI", 17, "bold"), fg="#AAAAAA", cursor="hand2", width=10, height=6)
+        logo_labo_label.pack(side="right", padx=25)
+        logo_college_label.pack(side="left", padx=25)
+        logo_college_label.bind("<Button-1>", lambda e: webbrowser.open_new_tab("https://etab.ac-reunion.fr/clg-cambuston/"))
 
     def ouvrir_fichier_csv(self):
         """Ouvre un fichier CSV et affiche le résumé dans l'interface."""
