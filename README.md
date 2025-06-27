@@ -1,87 +1,109 @@
-# MakeGroups V3
+# Outil de suivi des groupes de besoins
 
-## 📋 Présentation
-
-**MakeGroups V3** est un outil Python permettant de répartir automatiquement les élèves en groupes, à partir d’un fichier CSV.
-L’interface graphique est simple et intuitive, conçue pour tous les enseignants, même sans compétences informatiques.
+Outil Python graphique pour la répartition intelligente des élèves en groupes de besoins.
 
 ---
 
-## 🚀 Installation rapide
+## Fonctionnalités principales
 
-> Pour plus de détails, voir le guide d’installation fourni.
-
-1. **Installer Python**
-
-   Télécharger et installer la dernière version sur [python.org](https://www.python.org/downloads/)
-
-   > ⚠️ N’oubliez pas de cocher **Add Python to PATH** à l’installation.
-
-2. **Installer les modules nécessaires**
-
-   Ouvrir l’invite de commande (`Windows + R` → `cmd`) et taper : 
-
-   ```
-   pip install pandas pillow openpyxl pyinstaller
-   ```
-
-3. **Télécharger le programme**
-
-   * Aller sur la page GitHub du projet : https://github.com/sauceaubeurre/MakeGroups
-   * Cliquer sur **Code > Download ZIP**
-   * Décompresser le ZIP dans un dossier
-
-4. **Lancer le programme**
-
-   Double-cliquer sur `MakeGroups_UI.py`
-   
-Tu peux aussi générer un .exe pour pouvoir lancer ton logiciel sur un PC qui n'a pas Python d'installé :
-	-> Exécute le script `EXE_Generator.cmd`
----
-
-## 🖥️ Utilisation
-
-1. **Ouvrir un fichier CSV**
-
-   Le programme attend un fichier CSV avec les colonnes suivantes :
-
-   * `Classe`
-   * `Nom`
-   * `Prenom`
-   * `Niveau`
-     Le séparateur doit être **la virgule** (`,`).
-
-2. **Renseigner ou non la répartition des élèves**
-
-   * Tu peux indiquer, pour chaque niveau, le nombre d’élèves dans chaque groupe (sauf le dernier, complété automatiquement)
-   * Ou laisser vide pour une répartition équilibrée automatique
-
-3. **Récapitulatif**
-
-   Une fenêtre te montre la composition des groupes avant validation.
-
-4. **Enregistrement**
-
-   Choisis le dossier où seront enregistrés tous les fichiers générés (groupes, fichier enrichi, etc.).
+- **Interface graphique moderne** (Tkinter + TTK + tksheet)
+- **Logo cliquable** : accès au site du collège
+- **Ouverture de fichier CSV** élèves (colonnes : Classe, Nom, Prenom, Niveau)
+- **Résumé instantané** après chargement (effectifs, niveaux, classes, groupes)
+- **Saisie manuelle** de la répartition des effectifs par niveau/groupe
+    - **Saisie facilitée** : laisse vide pour une répartition automatique et équilibrée
+    - **Dernier groupe auto-rempli**
+- **Récapitulatif avant génération**
+    - **Tableau dynamique (Treeview)** avec : effectif par groupe, par niveau, par classe
+    - **Avertissements** si groupes vides ou déséquilibrés
+- **Édition manuelle avancée des groupes**
+    - **Tableaux éditables** (tksheet) : visualisation par groupe
+    - **Transfert d'élèves** entre groupes avec boutons “>” et “<”
+    - **Treeview récapitulatif mis à jour en temps réel**
+- **Génération de fichiers**
+    - **Choix du dossier d’enregistrement** au moment de la génération
+    - **Création d’un sous-dossier** `<classes>_PériodeX` automatique pour chaque période
+    - **Export CSV & Excel** de chaque groupe + fichier enrichi
+    - **Gestion automatique des périodes** (“Groupe Période 1”, “Groupe Période 2”…)
+- **Réinitialisation rapide** de l’interface
+- **Pop-ups d’erreur et de confirmation**  
+- **Compatible .exe** (PyInstaller)
 
 ---
 
-## 📑 Exemple de fichier CSV attendu
+## Nouveautés & Améliorations
 
-```csv
-Classe,Nom,Prenom,Niveau
-601,DUPONT,Alice,2
-602,MARTIN,Hugo,3
-601,LEMAIRE,Sarah,4
-...
-```
+- **Choix du dossier d’enregistrement** (plus flexible)
+- **Treeview d’effectif mis à jour en temps réel** lors des transferts
+- **Code plus lisible et modulaire**
+- **Aide utilisateur** (textes d’aide, erreurs plus explicites)
+- **Contrôle de cohérence renforcé** (validation avant génération)
 
 ---
 
-## ℹ️ Astuces et conseils
+## Prérequis
 
-* Tu peux regénérer des groupes autant de fois que tu veux avec le fichier généré précédemment : chaque génération ajoute une colonne “Groupe Période X”.
-* Les groupes sont équilibrés automatiquement si aucune case n’est renseignée lors de la saisie.
-* Le logo en haut de la fenêtre est cliquable pour accéder au site de l’établissement.
+- Python 3.10+  
+- Modules : `pandas`, `openpyxl`, `pillow`, `tksheet`, `pyinstaller`
 
 ---
+
+## Installation rapide
+
+1. **Installer Python**  
+    - Télécharger depuis [python.org](https://www.python.org/downloads/)  
+    - Installer et cocher “Add Python to PATH” lors de l’installation
+
+2. **Installer les modules nécessaires**  
+    - Ouvrir un terminal (Win+R, puis `cmd`)  
+    - Lancer :  
+      ```
+      pip install pandas pillow openpyxl tksheet
+      ```
+
+3. **Télécharger le programme**  
+    - Aller sur le dépôt GitHub  
+    - Cliquer sur Code > Download ZIP  
+    - Décompresser le dossier
+
+4. **Lancer le programme**  
+    - Double-cliquer sur `MakeGroups_UI.py`
+
+---
+
+## Utilisation
+
+1. **Ouvrir le fichier CSV** (doit comporter les colonnes : Classe, Nom, Prenom, Niveau)
+2. **Consulter le résumé** affiché
+3. **Choisir la répartition** :
+    - Saisir le nombre d’élèves de chaque niveau par groupe
+    - Laisser vide pour générer une répartition équilibrée automatiquement
+4. **Cliquer sur “Récapitulatif”**
+5. **Éditer les groupes si besoin** :
+    - Utiliser les boutons pour transférer des élèves d’un groupe à l’autre
+    - Observer la mise à jour en temps réel du tableau récapitulatif
+6. **Valider et Générer**
+    - Choisir le dossier d’enregistrement
+    - Tous les fichiers sont générés dans un sous-dossier “<classes>_PériodeX”
+7. **Réinitialiser** pour recommencer avec un nouveau fichier
+
+---
+
+## Personnalisation & astuces
+
+- **Changer les logos** : remplacer les fichiers `logo_college.png` et `logo_labo.png`
+- **Changer l’icône du programme** : remplacer `icone.ico`
+- **Adapter les colonnes affichées** : modifier les listes “columns” dans le code
+
+---
+
+## FAQ
+
+- **“Le programme ne se lance pas”**  
+    Vérifiez que Python est bien installé et que tous les modules sont présents.
+
+- **“Problème d’encodage”**  
+    Utilisez toujours le format CSV UTF-8 (Excel : “Enregistrer sous > CSV UTF-8”).
+
+---
+
