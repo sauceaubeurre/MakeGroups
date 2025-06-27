@@ -235,14 +235,26 @@ class Application(tk.Tk):
                 warning = ""
             if warning:
                 tk.Label(recap, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
+            
+            def update_treeview():
+                for row in tree.get_children():
+                    tree.delete(row)
+                for i, g in enumerate(group_data):
+                    ligne = [f"Groupe {i+1}", len(g)]
+                    for n in sorted(self.niveaux):
+                        ligne.append(len(g[g["Niveau"] == n]))
+                    for c in sorted(self.df["Classe"].unique()):
+                        ligne.append(len(g[g["Classe"] == c]))
+                    tree.insert("", "end", values=ligne)
 
+            
             # --- Zone d'édition des groupes (tksheet)
             edit_frame = tk.Frame(recap, bg="#F7F9FA")
             edit_frame.pack(fill="x", padx=15, pady=8)
 
             sheets = []
             group_data = []
-            columns = ["Classe", "Nom", "Prenom", "Niveau"]
+            columns = ["Nom", "Prenom", "Niveau"]
 
             # Prépare les DataFrames pour édition (copies, on modifiera ces listes)
             for g in groupes:
@@ -254,7 +266,13 @@ class Application(tk.Tk):
             header_row = tk.Frame(edit_frame, bg="#F7F9FA")
             header_row.pack(fill="x")
             for idx in range(self.nb_groupes):
-                tk.Label(header_row, text=f"Groupe {idx+1}", font=("Segoe UI", 12, "bold"), bg="#F7F9FA").grid(row=0, column=2*idx, columnspan=2, sticky="nsew", padx=8, pady=(0,4))
+                tk.Label(header_row, 
+                text=f"Groupe {idx+1}", 
+                font=("Segoe UI", 12, "bold"), 
+                bg="#F7F9FA",
+                width=45,
+                anchor="center"
+                ).pack(side="left", padx=15, pady=(0,4))
 
             # 2ème ligne : les tableaux + boutons
             table_row = tk.Frame(edit_frame, bg="#F7F9FA")
@@ -265,16 +283,14 @@ class Application(tk.Tk):
                 sheet = Sheet(table_row,
                               data=group_data[idx][columns].values.tolist(),
                               headers=columns,
-                              width=350,
-                              height=260,
-                              show_x_scrollbar=False,
-                              show_y_scrollbar=True)
+                              width=450,
+                              height=550)
                 sheet.enable_bindings((
                     "single_select",
                     "row_select",
                     "arrowkeys",
-                    "right_click_popup_menu",
-                    # désactive tout le reste !
+                    "x_scrollbar",
+                    "y_scrollbar",
                 ))
                 # Bloque toute édition
                 sheet.readonly_columns(columns=columns)
@@ -312,6 +328,7 @@ class Application(tk.Tk):
                 # Mettre à jour le nombre d'élèves
                 for idx in range(self.nb_groupes):
                     group_labels[idx].config(text=f"Groupe {idx+1} ({len(group_data[idx])} élèves)")
+                update_treeview()
 
 
             # --- Boutons Valider/Retour
