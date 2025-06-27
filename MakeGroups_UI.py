@@ -325,9 +325,6 @@ class Application(tk.Tk):
                 sheets[dest].set_sheet_data(group_data[dest][columns].values.tolist())
                 sheets[src].deselect("all")
                 sheets[dest].deselect("all")
-                # Mettre à jour le nombre d'élèves
-                for idx in range(self.nb_groupes):
-                    group_labels[idx].config(text=f"Groupe {idx+1} ({len(group_data[idx])} élèves)")
                 update_treeview()
 
 
