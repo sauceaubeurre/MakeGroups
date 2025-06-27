@@ -57,8 +57,8 @@ class Application(tk.Tk):
         self.logo_frame.pack(fill="x", pady=(20, 10))
         self.afficher_logo()
 
-        titre = ttk.Label(self, text="Création des groupes de 6e", style="Title.TLabel", background="#F7F9FA")
-        titre.pack()
+        titre = ttk.Label(self, text="Outil de suivi des groupes de besoins", style="Title.TLabel", background="#F7F9FA")
+        titre.pack(side="top", pady=10)
 
         btn_ouvrir = ttk.Button(self, text="Ouvrir un fichier CSV", command=self.ouvrir_fichier_csv)
         btn_ouvrir.pack(pady=25)

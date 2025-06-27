@@ -22,7 +22,7 @@ L’interface graphique est simple et intuitive, conçue pour tous les enseignan
    Ouvrir l’invite de commande (`Windows + R` → `cmd`) et taper : 
 
    ```
-   pip install pandas pillow openpyxl
+   pip install pandas pillow openpyxl pyinstaller
    ```
 
 3. **Télécharger le programme**
@@ -36,12 +36,7 @@ L’interface graphique est simple et intuitive, conçue pour tous les enseignan
    Double-cliquer sur `MakeGroups_UI.py`
    
 Tu peux aussi générer un .exe pour pouvoir lancer ton logiciel sur un PC qui n'a pas Python d'installé :
-Pour ça il te suffit d'ouvrir une invite de commande dans le dossier où se trouve le programme (Clic-droit -> "Ouvrir dans le terminal")
-
-Et de taper la commande : 
-
-```pip install pyinstaller``` suivi de :
-```pyinstaller --noconsole --onefile --add-data "logo.png;." MakeGroups_UI.py```
+	-> Exécute le script `EXE_Generator.cmd`
 ---
 
 ## 🖥️ Utilisation
