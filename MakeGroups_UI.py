@@ -10,8 +10,11 @@ Interface graphique MakeGroups V3
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 from PIL import Image, ImageTk
+import tksheet
+from tksheet import Sheet
 import webbrowser
 import os
+import pandas as pd
 from MakeGroups import (
     charger_fichier,
     compter_niveaux,
@@ -166,7 +169,7 @@ class Application(tk.Tk):
         btn_reset.pack(side="left", padx=10)
 
     def afficher_recapitulatif(self):
-        """Affiche le récapitulatif des groupes par niveau et classe, avant génération."""
+        """Affiche le récapitulatif des groupes par niveau et classe, puis les groupes éditables (tksheet)."""
         try:
             # Si toutes les cases sont vides => répartit automatiquement avec le backend
             if all(all(not entry.get().strip() for entry in entrees) for entrees in self.entrees.values()):
@@ -202,9 +205,9 @@ class Application(tk.Tk):
             recap.state('zoomed')
             recap.configure(bg="#F7F9FA")
 
-            ttk.Label(recap, text="Tableau récapitulatif avant génération des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
-            
-            # --- Création du Treeview (tableau)
+            ttk.Label(recap, text="Tableau récapitulatif avant édition des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
+
+            # --- Création du Treeview (tableau d'effectif)
             colonnes = ["Groupe", "Effectif total"] + \
                        [f"Niveau {n}" for n in sorted(self.niveaux)] + \
                        [f"Classe {c}" for c in sorted(self.df['Classe'].unique())]
@@ -215,18 +218,14 @@ class Application(tk.Tk):
                 tree.column(col, width=100, anchor="center")
             tree.pack(fill="x", padx=20, pady=10)
 
-            # --- Remplissage du tableau
             for i, g in enumerate(groupes):
                 ligne = [f"Groupe {i+1}", len(g)]
-                # Ajoute le nombre d'élèves par niveau
                 for n in sorted(self.niveaux):
                     ligne.append(len(g[g["Niveau"] == n]))
-                # Ajoute le nombre d'élèves par classe
                 for c in sorted(self.df["Classe"].unique()):
                     ligne.append(len(g[g["Classe"] == c]))
                 tree.insert("", "end", values=ligne)
 
-            # --- Warnings éventuels
             effectifs = [len(g) for g in groupes]
             if min(effectifs) == 0:
                 warning = "⚠️ Certains groupes sont vides !"
@@ -237,14 +236,115 @@ class Application(tk.Tk):
             if warning:
                 tk.Label(recap, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
 
+            # --- Zone d'édition des groupes (tksheet)
+            edit_frame = tk.Frame(recap, bg="#F7F9FA")
+            edit_frame.pack(fill="x", padx=15, pady=8)
+
+            sheets = []
+            group_data = []
+            columns = ["Classe", "Nom", "Prenom", "Niveau"]
+
+            # Prépare les DataFrames pour édition (copies, on modifiera ces listes)
+            for g in groupes:
+                # tri initial par NOM
+                df_g = g.sort_values(by="Nom").reset_index(drop=True)
+                group_data.append(df_g)
+
+            # 1ère ligne : noms des groupes
+            header_row = tk.Frame(edit_frame, bg="#F7F9FA")
+            header_row.pack(fill="x")
+            for idx in range(self.nb_groupes):
+                tk.Label(header_row, text=f"Groupe {idx+1}", font=("Segoe UI", 12, "bold"), bg="#F7F9FA").grid(row=0, column=2*idx, columnspan=2, sticky="nsew", padx=8, pady=(0,4))
+
+            # 2ème ligne : les tableaux + boutons
+            table_row = tk.Frame(edit_frame, bg="#F7F9FA")
+            table_row.pack(fill="x")
+
+            for idx in range(self.nb_groupes):
+                # Tableaux des élèves
+                sheet = Sheet(table_row,
+                              data=group_data[idx][columns].values.tolist(),
+                              headers=columns,
+                              width=350,
+                              height=260,
+                              show_x_scrollbar=False,
+                              show_y_scrollbar=True)
+                sheet.enable_bindings((
+                    "single_select",
+                    "row_select",
+                    "arrowkeys",
+                    "right_click_popup_menu",
+                    # désactive tout le reste !
+                ))
+                # Bloque toute édition
+                sheet.readonly_columns(columns=columns)
+                sheet.extra_bindings("cell_edit", lambda *a, **kw: "break")
+                sheet.grid(row=0, column=2*idx, padx=(0,0), pady=2)
+                sheets.append(sheet)
+
+                # Ajout des boutons (pas pour le dernier)
+                if idx < self.nb_groupes-1:
+                    btns = tk.Frame(table_row, bg="#F7F9FA")
+                    btns.grid(row=0, column=2*idx+1, sticky="ns", padx=2)
+                    btn_right = ttk.Button(btns, text=">", width=3, command=lambda i=idx: transfer(i, i+1))
+                    btn_left = ttk.Button(btns, text="<", width=3, command=lambda i=idx+1: transfer(i, i-1))
+                    btn_right.pack(pady=2)
+                    btn_left.pack(pady=2)
+
+            def transfer(src, dest):
+                selected = sheets[src].get_selected_rows()
+                if not selected:
+                    return
+                idx = list(selected)[0]
+                row_vals = group_data[src].iloc[idx]
+                # Supprimer du src
+                group_data[src] = group_data[src].drop(idx).reset_index(drop=True)
+                # Ajouter au dest
+                group_data[dest] = pd.concat([group_data[dest], pd.DataFrame([row_vals])], ignore_index=True)
+                # Trier les deux groupes
+                group_data[src] = group_data[src].sort_values(by="Nom").reset_index(drop=True)
+                group_data[dest] = group_data[dest].sort_values(by="Nom").reset_index(drop=True)
+                # Mettre à jour l'affichage
+                sheets[src].set_sheet_data(group_data[src][columns].values.tolist())
+                sheets[dest].set_sheet_data(group_data[dest][columns].values.tolist())
+                sheets[src].deselect("all")
+                sheets[dest].deselect("all")
+                # Mettre à jour le nombre d'élèves
+                for idx in range(self.nb_groupes):
+                    group_labels[idx].config(text=f"Groupe {idx+1} ({len(group_data[idx])} élèves)")
+
+
             # --- Boutons Valider/Retour
             btns = ttk.Frame(recap)
             btns.pack(pady=18)
-            ttk.Button(btns, text="Valider et Générer", command=lambda: self.generer_groupes_et_sauvegarder(repartition, recap)).pack(side="left", padx=8)
+            def valider_final():
+                # Utilise l’état modifié de group_data
+                groupes_final = [df.copy() for df in group_data]
+                dossier_complet = filedialog.askdirectory(
+                    title="Choisissez le dossier où enregistrer les fichiers de groupes"
+                )
+                if not dossier_complet:
+                    return
+                try:
+                    dossier_complet, nom_classes, periode = ajouter_groupes_au_df(
+                        self.df, groupes_final, self.chemin_fichier, dossier_complet
+                    )
+                    sauvegarder_groupes(groupes_final, dossier_complet, nom_classes, periode)
+                    recap.destroy()
+                    self.afficher_message(
+                        "Groupes créés avec succès",
+                        f"Tous les fichiers ont été enregistrés dans le dossier :\n\n{dossier_complet}",
+                        type="info"
+                    )
+                except Exception as e:
+                    self.afficher_message("Erreur lors de la génération", str(e), type="error")
+
+            ttk.Button(btns, text="Valider et Générer", command=valider_final).pack(side="left", padx=8)
             ttk.Button(btns, text="Retour", command=recap.destroy).pack(side="left", padx=8)
 
         except Exception as e:
             self.afficher_message("Erreur de saisie", str(e), type="error")
+
 
     def generer_groupes_et_sauvegarder(self, repartition, fenetre_recap):
         """Génère les groupes et enregistre tout directement dans le dossier choisi par l'utilisateur."""

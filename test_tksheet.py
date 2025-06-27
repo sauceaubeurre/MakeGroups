@@ -19,6 +19,10 @@ groupes_data = [
 
 colonnes = ["Classe", "Nom", "Prénom", "Niveau"]
 
+# Trie chaque groupe avant affichage
+for g in groupes_data:
+    g.sort(key=lambda x: x[1])
+
 root = tk.Tk()
 root.title("Prototype Groupes - tksheet + boutons transfert")
 
