@@ -203,24 +203,41 @@ class Application(tk.Tk):
             recap.configure(bg="#F7F9FA")
 
             ttk.Label(recap, text="Tableau récapitulatif avant génération des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
-            for i, g in enumerate(groupes):
-                resume = f"Groupe {i+1} : {len(g)} élèves  |  "
-                niveaux_liste = [f"Niveau {n} : {len(g[g['Niveau']==n])} élève(s)" for n in sorted(self.niveaux)]
-                resume += " / ".join(niveaux_liste)
-                classes_liste = [f"Classe {c} : {len(g[g['Classe']==c])}élève(s)" for c in sorted(self.df['Classe'].unique())]
-                resume += "  |  " + " / ".join(classes_liste)
-                lbl = ttk.Label(recap, text=resume, background="#F7F9FA")
-                lbl.pack(anchor="w", padx=15)
+            
+            # --- Création du Treeview (tableau)
+            colonnes = ["Groupe", "Effectif total"] + \
+                       [f"Niveau {n}" for n in sorted(self.niveaux)] + \
+                       [f"Classe {c}" for c in sorted(self.df['Classe'].unique())]
 
-            warning = ""
+            tree = ttk.Treeview(recap, columns=colonnes, show="headings", height=len(groupes))
+            for col in colonnes:
+                tree.heading(col, text=col)
+                tree.column(col, width=100, anchor="center")
+            tree.pack(fill="x", padx=20, pady=10)
+
+            # --- Remplissage du tableau
+            for i, g in enumerate(groupes):
+                ligne = [f"Groupe {i+1}", len(g)]
+                # Ajoute le nombre d'élèves par niveau
+                for n in sorted(self.niveaux):
+                    ligne.append(len(g[g["Niveau"] == n]))
+                # Ajoute le nombre d'élèves par classe
+                for c in sorted(self.df["Classe"].unique()):
+                    ligne.append(len(g[g["Classe"] == c]))
+                tree.insert("", "end", values=ligne)
+
+            # --- Warnings éventuels
             effectifs = [len(g) for g in groupes]
             if min(effectifs) == 0:
-                warning = "⚠️ Certains groupes seront vides !"
+                warning = "⚠️ Certains groupes sont vides !"
             elif max(effectifs) - min(effectifs) > 2:
                 warning = "⚠️ Les groupes sont déséquilibrés."
+            else:
+                warning = ""
             if warning:
                 tk.Label(recap, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
-            
+
+            # --- Boutons Valider/Retour
             btns = ttk.Frame(recap)
             btns.pack(pady=18)
             ttk.Button(btns, text="Valider et Générer", command=lambda: self.generer_groupes_et_sauvegarder(repartition, recap)).pack(side="left", padx=8)
