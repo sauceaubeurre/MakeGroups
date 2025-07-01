@@ -8,7 +8,9 @@ Fonctions pour charger, répartir, enregistrer, et gérer l'historique de groupe
 from pathlib import Path
 import pandas as pd
 import os
+import unicodedata
 import re
+import random
 from collections import defaultdict
 
 def read_csv_utf8_fallback(path):
@@ -144,19 +146,66 @@ def sauvegarder_groupes(groupes, dossier_sortie, nom_classes, periode):
         g.to_excel(f"{base}.xlsx", index=False)
 
 # ======================= 6. Générer groupes (attribution) ====================
+def historique_groupes_par_eleve(df):
+    """
+    Retourne pour chaque élève l'ensemble des groupes déjà faits (par période).
+    Renvoie : {(nom, prenom, classe): set(num_groupes)}
+    """
+    histo = {}
+    # Colonnes type "Groupe Periode X" ou "Groupe Période X"
+    pattern = re.compile(r"groupe p[ée]riode ?(\d+)", re.IGNORECASE)
+    groupe_cols = [col for col in df.columns if pattern.match(normalize_str(col))]
+    for idx, row in df.iterrows():
+        key = (row['Nom'], row['Prenom'], row['Classe'])
+        groupes_faits = set()
+        for col in groupe_cols:
+            try:
+                val = int(row[col])
+                groupes_faits.add(val)
+            except Exception:
+                continue
+        histo[key] = groupes_faits
+    return histo
+
+def choisir_groupe_possible(histo_eleve, quotas_restants, nb_groupes):
+    """
+    Retourne la liste des groupes possibles pour un élève : d’abord les groupes JAMAIS faits,
+    puis ceux déjà faits (si besoin). Prend en compte les quotas restants.
+    """
+    groupes_jamais_faits = [g for g in range(1, nb_groupes+1) if g not in histo_eleve and quotas_restants[g-1] > 0]
+    if groupes_jamais_faits:
+        return groupes_jamais_faits
+    # Sinon on retourne tous les groupes où il reste de la place
+    return [g for g in range(1, nb_groupes+1) if quotas_restants[g-1] > 0]
+
 def generer_groupes(df, nb_groupes, repartition):
     """
-    Génère les groupes à partir d'une répartition validée :
-    repartition = {niveau: [nb_groupe1, nb_groupe2, ...]}
-    Retourne : liste de DataFrame (un par groupe)
+    Répartition qui tente d'éviter de remettre un élève dans un groupe déjà fait (priorité à la nouveauté).
+    Si impossible (tous déjà faits ou groupes pleins), complète quand même.
     """
+    histo = historique_groupes_par_eleve(df)
     groupes = [[] for _ in range(nb_groupes)]
+
+    # On avance par niveau (comme avant)
     for niveau, quotas in repartition.items():
-        eleves_niveau = df[df['Niveau'] == niveau].sample(frac=1).reset_index(drop=True)
-        index = 0
-        for i, quota in enumerate(quotas):
-            groupes[i].extend(eleves_niveau.iloc[index:index+quota].to_dict('records'))
-            index += quota
+        eleves_niveau = df[df['Niveau'] == niveau].copy()
+        # Assure mélange à chaque appel pour équité
+        eleves_niveau = eleves_niveau.sample(frac=1, random_state=None).reset_index(drop=True)
+        quotas_restants = quotas.copy()  # Nb de places à remplir dans chaque groupe
+
+        for _, eleve in eleves_niveau.iterrows():
+            key = (eleve['Nom'], eleve['Prenom'], eleve['Classe'])
+            histo_eleve = histo.get(key, set())
+            groupes_possibles = choisir_groupe_possible(histo_eleve, quotas_restants, nb_groupes)
+            if groupes_possibles:
+                # Choix aléatoire parmi les groupes possibles (équité)
+                grp = random.choice(groupes_possibles)
+                groupes[grp-1].append(eleve)
+                quotas_restants[grp-1] -= 1
+            else:
+                # (Normalement impossible si quotas bien faits, sécurité)
+                pass
+
     return [pd.DataFrame(g) for g in groupes]
 
 # ======================= 7. Répartition automatique ===========================
@@ -190,18 +239,26 @@ def extraire_nom_classes(df):
     return "-".join(classes)
 
 # ======================= 10. Détecter prochaine période =======================
+def normalize_str(s):
+    """Supprime les accents, met en minuscule, enlève les espaces superflus."""
+    if not isinstance(s, str):
+        return s
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('utf-8')
+    return s.lower().strip()
+
 def detecter_prochaine_periode(df):
-    """Renvoie le numéro de la prochaine période à ajouter, debug inclut."""
-    pattern = re.compile(r"Groupe P[ée]riode (\d+)")
+    """
+    Détecte la prochaine période à créer à partir des colonnes du DataFrame,
+    robustement (casse, accents, espaces...).
+    """
     periodes = []
     for col in df.columns:
-        m = pattern.match(col)
+        col_norm = normalize_str(col)
+        # Regex : n'importe où dans la colonne, cherche "groupe periode" + nombre
+        m = re.search(r"groupe\s*periode\s*(\d+)", col_norm)
         if m:
             periodes.append(int(m.group(1)))
     if periodes:
         return max(periodes) + 1
     else:
         return 1
-
-
-
