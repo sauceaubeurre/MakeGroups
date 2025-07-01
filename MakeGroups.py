@@ -128,7 +128,6 @@ def ajouter_groupes_au_df(df_original, groupes, chemin_csv, dossier_parent):
 
     # Sauvegarde du fichier enrichi
     base_path = os.path.join(dossier_complet, f"{nom_classes}_Période{periode}")
-    df_original.to_csv(f"{base_path}.csv", index=False, sep=",")
     df_original.to_excel(f"{base_path}.xlsx", index=False)
 
     return dossier_complet, nom_classes, periode
@@ -142,7 +141,6 @@ def sauvegarder_groupes(groupes, dossier_sortie, nom_classes, periode):
     for i, g in enumerate(groupes, 1):
         base = os.path.join(dossier_sortie, f"{nom_classes}_Groupe{i}_Période{periode}")
         os.makedirs(os.path.dirname(base), exist_ok=True)
-        g.to_csv(f"{base}.csv", index=False, sep=",")
         g.to_excel(f"{base}.xlsx", index=False)
 
 # ======================= 6. Générer groupes (attribution) ====================
