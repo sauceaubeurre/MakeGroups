@@ -8,9 +8,8 @@ Interface graphique MakeGroups V3
 """
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog
+from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
-import tksheet
 from tksheet import Sheet
 import webbrowser
 import os
@@ -26,26 +25,31 @@ from MakeGroups import (
     extraire_nom_classes,
 )
 
+# ==============================================================================
+# Classe principale de l'application
+# ==============================================================================
+
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
         script_dir = os.path.dirname(os.path.abspath(__file__))
         self.iconbitmap(os.path.join(script_dir, "icone.ico"))
         self.title("Outil de suivi des groupes de besoins")
-        self.state('zoomed')  # Plein écran au démarrage
+        self.state('zoomed')
         self.configure(bg="#F7F9FA")
 
+        # Attributs principaux
         self.df = None
         self.chemin_fichier = ""
         self.niveaux = {}
         self.nb_groupes = 0
-        self.entrees = {}  # {niveau: [Entry, ...]}
-        self.logo_image = None
+        self.entrees = {}            # {niveau: [Entry, ...]}
         self.logo_frame = None
         self.resume_label = None
         self.frame_saisie = None
         self.frame_boutons = None
 
+        # Style global
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.style.configure("TButton", font=("Segoe UI", 11), padding=6)
@@ -54,8 +58,11 @@ class Application(tk.Tk):
 
         self.init_ui()
 
+    # ==========================================================================
+    # Initialisation interface : header/logo/bouton ouverture fichier
+    # ==========================================================================
+
     def init_ui(self):
-        """Crée le header avec logo et le bouton d'ouverture de fichier."""
         self.logo_frame = tk.Frame(self, bg="#F7F9FA")
         self.logo_frame.pack(fill="x", pady=(20, 10))
         self.afficher_logo()
@@ -73,10 +80,8 @@ class Application(tk.Tk):
             script_dir = os.path.dirname(os.path.abspath(__file__))
             logo_labo_path = os.path.join(script_dir, "logo_labo.png")
             logo_college_path = os.path.join(script_dir, "logo_college.png")
-            img_labo = Image.open(logo_labo_path)
-            img_college = Image.open(logo_college_path)
-            img_labo = img_labo.resize((120, 120), Image.Resampling.LANCZOS)
-            img_college = img_college.resize((120, 120), Image.Resampling.LANCZOS)
+            img_labo = Image.open(logo_labo_path).resize((120, 120), Image.Resampling.LANCZOS)
+            img_college = Image.open(logo_college_path).resize((120, 120), Image.Resampling.LANCZOS)
             self.logo_labo_image = ImageTk.PhotoImage(img_labo)
             self.logo_college_image = ImageTk.PhotoImage(img_college)
             logo_labo_label = tk.Label(self.logo_frame, image=self.logo_labo_image, bg="#F7F9FA", cursor="hand2")
@@ -89,8 +94,11 @@ class Application(tk.Tk):
         logo_college_label.pack(side="left", padx=25)
         logo_college_label.bind("<Button-1>", lambda e: webbrowser.open_new_tab("https://etab.ac-reunion.fr/clg-cambuston/"))
 
+    # ==========================================================================
+    # Chargement du fichier élèves
+    # ==========================================================================
+
     def ouvrir_fichier_eleves(self):
-        """Ouvre un fichier d'élèves (CSV ou Excel) et affiche le résumé dans l'interface."""
         chemin = filedialog.askopenfilename(
             filetypes=[
                 ("Fichiers élèves (CSV, Excel)", "*.csv *.xlsx *.xls"),
@@ -111,9 +119,11 @@ class Application(tk.Tk):
         except Exception as e:
             self.afficher_message("Erreur lors du chargement du fichier", str(e), type="error")
 
+    # ==========================================================================
+    # Affichage du résumé
+    # ==========================================================================
 
     def afficher_resume(self):
-        """Affiche le résumé rapide du fichier chargé."""
         if self.resume_label:
             self.resume_label.destroy()
         resume = ""
@@ -128,10 +138,13 @@ class Application(tk.Tk):
             resume = resume.rstrip(", ") + "\n"
             resume += f"🧩 Nombre de groupes à créer : {self.nb_groupes}\n"
         self.resume_label = tk.Label(self, text=resume, bg="#F7F9FA", font=("Segoe UI", 11), justify="left", anchor="w")
-        self.resume_label.pack(pady=(0,12), fill="x", padx=40)
+        self.resume_label.pack(pady=(0, 12), fill="x", padx=40)
+
+    # ==========================================================================
+    # Saisie et affichage des répartitions
+    # ==========================================================================
 
     def afficher_champs_repartition(self):
-        """Affiche les champs de saisie pour chaque niveau/groupe."""
         if self.frame_saisie:
             self.frame_saisie.destroy()
         self.frame_saisie = tk.Frame(self, bg="#F7F9FA")
@@ -141,7 +154,6 @@ class Application(tk.Tk):
                      "Laissez les cases vides pour une répartition automatique.\n")
         ttk.Label(self.frame_saisie, text=help_text, style="TLabel", background="#F7F9FA").pack(pady=7)
 
-        # Création du tableau
         table = ttk.Frame(self.frame_saisie)
         table.pack()
 
@@ -155,33 +167,34 @@ class Application(tk.Tk):
             lbl = ttk.Label(table, text=f"Niveau {niveau} : {effectif} élève(s)", font=("Segoe UI", 11), anchor="center")
             lbl.grid(row=row, column=0, padx=5, pady=5)
             self.entrees[niveau] = []
-            for col in range(self.nb_groupes - 1):  # Saisie pour tous sauf le dernier
+            for col in range(self.nb_groupes - 1):
                 entry = ttk.Entry(table, width=5, font=("Segoe UI", 11))
                 entry.grid(row=row, column=col + 1, padx=3)
                 self.entrees[niveau].append(entry)
             lbl_last = ttk.Label(table, text="(auto)", font=("Segoe UI", 10, "italic"), foreground="#888")
             lbl_last.grid(row=row, column=self.nb_groupes, padx=4)
-        
-        # Boutons
+
         if self.frame_boutons:
             self.frame_boutons.destroy()
         self.frame_boutons = tk.Frame(self, bg="#F7F9FA")
-        self.frame_boutons.pack(pady=(18,8))
+        self.frame_boutons.pack(pady=(18, 8))
         btn_recap = ttk.Button(self.frame_boutons, text="Récapitulatif", command=self.afficher_recapitulatif)
         btn_recap.pack(side="left", padx=10)
 
+    # ==========================================================================
+    # Affichage du récapitulatif, édition des groupes
+    # ==========================================================================
+
     def afficher_recapitulatif(self):
-        """Affiche le récapitulatif des groupes par niveau et classe, puis les groupes éditables (tksheet)."""
         try:
-            # Si toutes les cases sont vides => répartit automatiquement avec le backend
+            # Détermination de la répartition selon la saisie utilisateur
             if all(all(not entry.get().strip() for entry in entrees) for entrees in self.entrees.values()):
                 repartition = generer_repartition_auto(self.df, self.nb_groupes)
             else:
                 repartition = {}
-                for i, (niveau, entrees) in enumerate(self.entrees.items()):
+                for niveau, entrees in self.entrees.items():
                     total = self.niveaux[niveau]
-                    vals = []
-                    somme = 0
+                    vals, somme = [], 0
                     for entry in entrees:
                         txt = entry.get().strip()
                         if txt:
@@ -193,7 +206,7 @@ class Application(tk.Tk):
                     restants = self.nb_groupes - len(vals)
                     base = (total - somme) // restants if restants > 0 else 0
                     surplus = (total - somme) % restants if restants > 0 else 0
-                    for j in range(restants-1):
+                    for j in range(restants - 1):
                         vals.append(base + (1 if j < surplus else 0))
                     vals.append(total - sum(vals))
                     repartition[niveau] = vals
@@ -201,15 +214,15 @@ class Application(tk.Tk):
             verifier_coherence_repartition(repartition, self.niveaux, self.nb_groupes)
             groupes = generer_groupes(self.df, self.nb_groupes, repartition)
 
-            # Création de la fenêtre récap
+            # --- Fenêtre récap ---
             recap = tk.Toplevel(self)
             recap.title("Récapitulatif des groupes")
             recap.state('zoomed')
             recap.configure(bg="#F7F9FA")
 
-            ttk.Label(recap, text="Tableau récapitulatif avant édition des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
+            ttk.Label(recap, text="Tableau récapitulatif avant édition des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
 
-            # --- Création du Treeview (tableau d'effectif)
+            # Tableau effectif par groupe/niveau/classe
             colonnes = ["Groupe", "Effectif total"] + \
                        [f"Niveau {n}" for n in sorted(self.niveaux)] + \
                        [f"Classe {c}" for c in sorted(self.df['Classe'].unique())]
@@ -229,28 +242,15 @@ class Application(tk.Tk):
                 tree.insert("", "end", values=ligne)
 
             effectifs = [len(g) for g in groupes]
+            warning = ""
             if min(effectifs) == 0:
                 warning = "⚠️ Certains groupes sont vides !"
             elif max(effectifs) - min(effectifs) > 2:
                 warning = "⚠️ Les groupes sont déséquilibrés."
-            else:
-                warning = ""
             if warning:
                 tk.Label(recap, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
-            
-            def update_treeview():
-                for row in tree.get_children():
-                    tree.delete(row)
-                for i, g in enumerate(group_data):
-                    ligne = [f"Groupe {i+1}", len(g)]
-                    for n in sorted(self.niveaux):
-                        ligne.append(len(g[g["Niveau"] == n]))
-                    for c in sorted(self.df["Classe"].unique()):
-                        ligne.append(len(g[g["Classe"] == c]))
-                    tree.insert("", "end", values=ligne)
 
-            
-            # --- Zone d'édition des groupes (tksheet)
+            # --- Tableaux d'édition (tksheet)
             edit_frame = tk.Frame(recap, bg="#F7F9FA")
             edit_frame.pack(fill="x", padx=15, pady=8)
 
@@ -258,30 +258,19 @@ class Application(tk.Tk):
             group_data = []
             columns = ["Nom", "Prenom", "Niveau"]
 
-            # Prépare les DataFrames pour édition (copies, on modifiera ces listes)
             for g in groupes:
-                # tri initial par NOM
                 df_g = g.sort_values(by="Nom").reset_index(drop=True)
                 group_data.append(df_g)
 
-            # 1ère ligne : noms des groupes
             header_row = tk.Frame(edit_frame, bg="#F7F9FA")
             header_row.pack(fill="x")
             for idx in range(self.nb_groupes):
-                tk.Label(header_row, 
-                text=f"Groupe {idx+1}", 
-                font=("Segoe UI", 12, "bold"), 
-                bg="#F7F9FA",
-                width=45,
-                anchor="center"
-                ).pack(side="left", padx=15, pady=(0,4))
+                tk.Label(header_row, text=f"Groupe {idx+1}", font=("Segoe UI", 12, "bold"), bg="#F7F9FA", width=45, anchor="center").pack(side="left", padx=15, pady=(0,4))
 
-            # 2ème ligne : les tableaux + boutons
             table_row = tk.Frame(edit_frame, bg="#F7F9FA")
             table_row.pack(fill="x")
 
             for idx in range(self.nb_groupes):
-                # Tableaux des élèves
                 sheet = Sheet(table_row,
                               data=group_data[idx][columns].values.tolist(),
                               headers=columns,
@@ -292,13 +281,11 @@ class Application(tk.Tk):
                     "row_select",
                     "arrowkeys",
                 ))
-                # Bloque toute édition
                 sheet.readonly_columns(columns=columns)
                 sheet.extra_bindings("cell_edit", lambda *a, **kw: "break")
                 sheet.grid(row=0, column=2*idx, padx=(0,0), pady=2)
                 sheets.append(sheet)
 
-                # Ajout des boutons (pas pour le dernier)
                 if idx < self.nb_groupes-1:
                     btns = tk.Frame(table_row, bg="#F7F9FA")
                     btns.grid(row=0, column=2*idx+1, sticky="ns", padx=2)
@@ -306,6 +293,17 @@ class Application(tk.Tk):
                     btn_left = ttk.Button(btns, text="<", width=3, command=lambda i=idx+1: transfer(i, i-1))
                     btn_right.pack(pady=2)
                     btn_left.pack(pady=2)
+
+            def update_treeview():
+                for row in tree.get_children():
+                    tree.delete(row)
+                for i, g in enumerate(group_data):
+                    ligne = [f"Groupe {i+1}", len(g)]
+                    for n in sorted(self.niveaux):
+                        ligne.append(len(g[g["Niveau"] == n]))
+                    for c in sorted(self.df["Classe"].unique()):
+                        ligne.append(len(g[g["Classe"] == c]))
+                    tree.insert("", "end", values=ligne)
 
             def transfer(src, dest):
                 selected = sheets[src].get_selected_rows()
@@ -327,12 +325,10 @@ class Application(tk.Tk):
                 sheets[dest].deselect("all")
                 update_treeview()
 
-
             # --- Boutons Valider/Retour
             btns = ttk.Frame(recap)
             btns.pack(pady=18)
             def valider_final():
-                # Utilise l’état modifié de group_data
                 groupes_final = [df.copy() for df in group_data]
                 dossier_complet = filedialog.askdirectory(
                     title="Choisissez le dossier où enregistrer les fichiers de groupes"
@@ -359,38 +355,21 @@ class Application(tk.Tk):
         except Exception as e:
             self.afficher_message("Erreur de saisie", str(e), type="error")
 
-
-    def generer_groupes_et_sauvegarder(self, repartition, fenetre_recap):
-        """Génère les groupes et enregistre tout directement dans le dossier choisi par l'utilisateur."""
-        dossier_complet = filedialog.askdirectory(
-            title="Choisissez le dossier où enregistrer les fichiers de groupes"
-        )
-        if not dossier_complet:
-            return
-
-        try:
-            groupes = generer_groupes(self.df, self.nb_groupes, repartition)
-            dossier_complet, nom_classes, periode = ajouter_groupes_au_df(
-                self.df, groupes, self.chemin_fichier, dossier_complet
-            )
-            sauvegarder_groupes(groupes, dossier_complet, nom_classes, periode)
-            fenetre_recap.destroy()
-            self.afficher_message(
-                "Groupes créés avec succès",
-                f"Tous les fichiers ont été enregistrés dans le dossier :\n\n{dossier_complet}",
-                type="info"
-            )
-        except Exception as e:
-            self.afficher_message("Erreur lors de la génération", str(e), type="error")
+    # ==========================================================================
+    # Messages pop-up : info, warning, erreur
+    # ==========================================================================
 
     def afficher_message(self, titre, message, type="info"):
-        """Affiche un message d'info, de warning ou d'erreur."""
         if type == "info":
             messagebox.showinfo(titre, message)
         elif type == "warning":
             messagebox.showwarning(titre, message)
         elif type == "error":
             messagebox.showerror(titre, message)
+
+# ==============================================================================
+# Lancement de l'application
+# ==============================================================================
 
 if __name__ == "__main__":
     app = Application()
