@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Backend - MakeGroups V3 (Robuste et lisible)
 --------------------------------------------
