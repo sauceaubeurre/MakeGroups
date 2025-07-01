@@ -1,4 +1,4 @@
-Guide d’installation MakeGroups V3)
+Guide d’installation MakeGroups V3
 
 1. Installer Python
 

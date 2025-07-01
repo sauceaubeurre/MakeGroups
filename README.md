@@ -43,7 +43,7 @@ Outil Python graphique pour la répartition intelligente des élèves en groupes
 
 ## Prérequis
 
-- Python 3.10+  
+- Python
 - Modules : `pandas`, `openpyxl`, `pillow`, `tksheet`, `pyinstaller`
 
 ---
@@ -58,16 +58,39 @@ Outil Python graphique pour la répartition intelligente des élèves en groupes
     - Ouvrir un terminal (Win+R, puis `cmd`)  
     - Lancer :  
       ```
-      pip install pandas pillow openpyxl tksheet
+      pip install -r requirements.txt
       ```
 
 3. **Télécharger le programme**  
-    - Aller sur le dépôt GitHub  
+    - Aller sur le dépôt GitHub (https://github.com/sauceaubeurre/MakeGroups)
     - Cliquer sur Code > Download ZIP  
     - Décompresser le dossier
 
 4. **Lancer le programme**  
     - Double-cliquer sur `MakeGroups_UI.py`
+
+---
+
+## Installation Avancée
+
+1. **Installer Python et les modules comme pour l'installation rapide**
+	- Voir ci-dessus
+
+2. **Installer git**
+	- Télécharger depuis https://git-scm.com/downloads
+	- Installer et tout laisser par défaut
+	
+3. **Cloner le dépôt du programme avec Git**
+	- Ouvrir le dossier où vous voulez cloner le programme et ouvrez Git Bash (Shift+Clic-droit dans le dossier)
+	- Taper :
+	```
+	git clone https://github.com/sauceaubeurre/MakeGroups
+	```
+4. **Lancer le programme**
+	- Double-cliquer sur `MakeGroups_UI.py` ou sur une invite de commande dans le dossier du projet taper :
+	```
+	python MakeGroups_UI.py
+	```
 
 ---
 
