@@ -5,31 +5,76 @@ Backend - MakeGroups V3 (Robuste et lisible)
 Fonctions pour charger, répartir, enregistrer, et gérer l'historique de groupes d'élèves par niveaux.
 """
 
+from pathlib import Path
 import pandas as pd
 import os
 import re
 from collections import defaultdict
 
+def read_csv_utf8_fallback(path):
+    """
+    Tente de lire un CSV en UTF-8, puis latin1 si une erreur Unicode survient.
+    """
+    try:
+        return pd.read_csv(path, encoding='utf-8')
+    except UnicodeDecodeError:
+        return pd.read_csv(path, encoding='latin1')
+
 # ======================= 0. Normaliser les colonnes ============================
 def normaliser_colonnes(df):
     """
-    Normalise les noms de colonnes pour gérer Prénom/Prenom et évite les accents.
+    Normalise les noms de colonnes :
+    - Remplace 'é'/'É' par 'e'
+    - Enlève les espaces en début/fin
+    - Met en majuscule la première lettre
     """
-    mapping = {col: col.replace('é','e').replace('É','E') for col in df.columns}
+    mapping = {col: col.replace('é', 'e').replace('É', 'E') for col in df.columns}
+    mapping = {col: mapped_col.strip().capitalize() for col, mapped_col in mapping.items()}
     return df.rename(columns=mapping)
+
 
 # ======================= 1. Charger un fichier ============================
 def charger_fichier(path):
     """
-    Charge un fichier CSV en DataFrame, vérifie les colonnes attendues et normalise.
+    Charge un fichier d'élèves (CSV ou Excel) dans un DataFrame pandas.
+    - Accepte : .csv, .xlsx, .xls
+    - Normalise les colonnes pour garantir 'Nom', 'Prenom', 'Classe', 'Niveau'
+    - Remplit les valeurs manquantes par '' (chaine vide)
+    - Renvoie le DataFrame prêt à l'emploi
+
+    Paramètres :
+        path (str) : chemin du fichier à charger
+
+    Exceptions :
+        ValueError si le format de fichier est incorrect ou si les colonnes sont absentes
     """
-    df = pd.read_csv(path)
+    ext = Path(path).suffix.lower()
+    open_funcs = {
+        '.csv': read_csv_utf8_fallback,
+        '.xlsx': pd.read_excel,
+        '.xls': pd.read_excel,
+    }
+    if ext not in open_funcs:
+        raise ValueError(
+            f"Format de fichier non pris en charge : {ext}\n"
+            "Formats acceptés : .csv, .xlsx, .xls"
+        )
+    # Chargement du fichier via la bonne fonction
+    try:
+        df = open_funcs[ext](path)
+    except Exception as e:
+        raise ValueError(f"Erreur lors de la lecture du fichier {os.path.basename(path)} :\n{e}")
     df = normaliser_colonnes(df)
+    # Vérification des colonnes attendues
     expected = {'Nom', 'Prenom', 'Classe', 'Niveau'}
     if not expected.issubset(df.columns):
-        raise ValueError(f"Le fichier doit contenir les colonnes : {expected}")
+        raise ValueError(
+            f"Le fichier doit contenir les colonnes suivantes : {expected}\n"
+            f"Colonnes trouvées : {list(df.columns)}"
+        )
     df.fillna('', inplace=True)
     return df
+
 
 # ======================= 2. Compter les niveaux ============================
 def compter_niveaux(df):

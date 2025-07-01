@@ -63,7 +63,7 @@ class Application(tk.Tk):
         titre = ttk.Label(self, text="Outil de suivi des groupes de besoins", style="Title.TLabel", background="#F7F9FA")
         titre.pack(side="top", pady=10)
 
-        btn_ouvrir = ttk.Button(self, text="Ouvrir un fichier CSV", command=self.ouvrir_fichier_csv)
+        btn_ouvrir = ttk.Button(self, text="Ouvrir un fichier élèves (CSV/Excel)", command=self.ouvrir_fichier_eleves)
         btn_ouvrir.pack(pady=25)
 
     def afficher_logo(self):
@@ -89,10 +89,13 @@ class Application(tk.Tk):
         logo_college_label.pack(side="left", padx=25)
         logo_college_label.bind("<Button-1>", lambda e: webbrowser.open_new_tab("https://etab.ac-reunion.fr/clg-cambuston/"))
 
-    def ouvrir_fichier_csv(self):
-        """Ouvre un fichier CSV et affiche le résumé dans l'interface."""
+    def ouvrir_fichier_eleves(self):
+        """Ouvre un fichier d'élèves (CSV ou Excel) et affiche le résumé dans l'interface."""
         chemin = filedialog.askopenfilename(
-            filetypes=[("Fichier CSV", "*.csv")],
+            filetypes=[
+                ("Fichiers élèves (CSV, Excel)", "*.csv *.xlsx *.xls"),
+                ("Tous les fichiers", "*.*"),
+            ],
             title="Sélectionnez la liste d'élèves"
         )
         if not chemin:
@@ -102,11 +105,12 @@ class Application(tk.Tk):
             self.chemin_fichier = chemin
             self.niveaux = compter_niveaux(self.df)
             self.nb_classes = len(self.df['Classe'].unique())
-            self.nb_groupes = self.nb_classes+1
+            self.nb_groupes = self.nb_classes + 1
             self.afficher_resume()
             self.afficher_champs_repartition()
         except Exception as e:
-            self.afficher_message("Erreur lors du chargement", str(e), type="error")
+            self.afficher_message("Erreur lors du chargement du fichier", str(e), type="error")
+
 
     def afficher_resume(self):
         """Affiche le résumé rapide du fichier chargé."""
@@ -165,8 +169,6 @@ class Application(tk.Tk):
         self.frame_boutons.pack(pady=(18,8))
         btn_recap = ttk.Button(self.frame_boutons, text="Récapitulatif", command=self.afficher_recapitulatif)
         btn_recap.pack(side="left", padx=10)
-        btn_reset = ttk.Button(self.frame_boutons, text="Réinitialiser", command=self.reinitialiser_interface)
-        btn_reset.pack(side="left", padx=10)
 
     def afficher_recapitulatif(self):
         """Affiche le récapitulatif des groupes par niveau et classe, puis les groupes éditables (tksheet)."""
@@ -289,8 +291,6 @@ class Application(tk.Tk):
                     "single_select",
                     "row_select",
                     "arrowkeys",
-                    "x_scrollbar",
-                    "y_scrollbar",
                 ))
                 # Bloque toute édition
                 sheet.readonly_columns(columns=columns)
@@ -382,24 +382,6 @@ class Application(tk.Tk):
             )
         except Exception as e:
             self.afficher_message("Erreur lors de la génération", str(e), type="error")
-
-    def reinitialiser_interface(self):
-        """Réinitialise complètement l'interface et les variables."""
-        confirm = messagebox.askyesno("Réinitialiser", "Voulez-vous vraiment tout réinitialiser ?")
-        if not confirm:
-            return
-        for w in self.winfo_children():
-            if w not in [self.logo_frame]:
-                w.destroy()
-        self.df = None
-        self.chemin_fichier = ""
-        self.niveaux = {}
-        self.nb_groupes = 0
-        self.entrees = {}
-        self.resume_label = None
-        self.frame_saisie = None
-        self.frame_boutons = None
-        self.init_ui()
 
     def afficher_message(self, titre, message, type="info"):
         """Affiche un message d'info, de warning ou d'erreur."""
