@@ -25,6 +25,89 @@ from MakeGroups import (
 )
 
 # ==============================================================================
+# Classe de la frame scrollable
+# ==============================================================================
+
+class ScrollableFrame(tk.Frame):
+    """
+    Conteneur défilable (X et Y) pour toute une page.
+    Utilisation :
+      sf = ScrollableFrame(parent, enable_xscroll=True)
+      sf.pack(fill="both", expand=True)
+      # Ajoutez vos widgets dans sf.body
+      tk.Label(sf.body, text="...").pack()
+    """
+    def __init__(self, parent, enable_xscroll=True, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.canvas = tk.Canvas(self, bg="#F7F9FA", highlightthickness=0)
+        self.vbar   = ttk.Scrollbar(self, orient="vertical",   command=self.canvas.yview)
+        self.hbar   = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview) if enable_xscroll else None
+
+        self.canvas.configure(yscrollcommand=self.vbar.set)
+        if enable_xscroll:
+            self.canvas.configure(xscrollcommand=self.hbar.set)
+
+        # Placement des scrollbars
+        self.vbar.pack(side="right", fill="y")
+        if enable_xscroll:
+            self.hbar.pack(side="bottom", fill="x")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Frame intérieure qui contiendra tout le contenu
+        self.body = tk.Frame(self.canvas, bg="#F7F9FA")
+        self.body_id = self.canvas.create_window((0, 0), window=self.body, anchor="nw")
+
+        # Quand le contenu change, on met à jour la zone scrollable
+        self.body.bind("<Configure>", self._on_body_configure)
+
+        # IMPORTANT :
+        # Ne plus forcer la largeur de 'body' à celle du canvas si on veut scroller horizontalement.
+        # Si vous ne voulez PAS de scroll horizontal, vous pouvez décommenter la ligne suivante
+        # pour "étirer" le contenu à la largeur visible :
+        # self.canvas.bind("<Configure>", self._stretch_body_width)
+
+        self._bind_mousewheel(self.canvas, enable_xscroll)
+
+    def _on_body_configure(self, _event=None):
+        # Ajuste la zone scrollable aux dimensions du contenu
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _stretch_body_width(self, event):
+        # Optionnel : utiliser si vous NE voulez pas de scroll horizontal
+        self.canvas.itemconfigure(self.body_id, width=event.width)
+
+    def _bind_mousewheel(self, widget, enable_xscroll):
+        # Défilement vertical
+        widget.bind_all("<MouseWheel>", self._on_mousewheel_y, add="+")  # Windows/Linux
+        widget.bind_all("<Button-4>",  self._on_mousewheel_y, add="+")   # mac (anciens events)
+        widget.bind_all("<Button-5>",  self._on_mousewheel_y, add="+")
+        # Défilement horizontal avec SHIFT + molette (Windows/Linux/mac)
+        if enable_xscroll:
+            widget.bind_all("<Shift-MouseWheel>", self._on_mousewheel_x, add="+")
+            widget.bind_all("<Shift-Button-4>",  self._on_mousewheel_x, add="+")
+            widget.bind_all("<Shift-Button-5>",  self._on_mousewheel_x, add="+")
+    
+    def _on_mousewheel_y(self, event):
+        if event.num == 4:   # mac old up
+            self.canvas.yview_scroll(-1, "units")
+        elif event.num == 5: # mac old down
+            self.canvas.yview_scroll(1, "units")
+        else:
+            self.canvas.yview_scroll(int(-1 * (event.delta/120)), "units")
+
+    def _on_mousewheel_x(self, event):
+        # SHIFT + molette => scroll horizontal
+        if event.num == 4:
+            self.canvas.xview_scroll(-1, "units")
+        elif event.num == 5:
+            self.canvas.xview_scroll(1, "units")
+        else:
+            self.canvas.xview_scroll(int(-1 * (event.delta/120)), "units")
+
+
+
+# ==============================================================================
 # Classe principale de l'application
 # ==============================================================================
 
@@ -36,6 +119,15 @@ class Application(tk.Tk):
         self.title("Outil de suivi des groupes de besoins")
         self.state('zoomed')
         self.configure(bg="#F7F9FA")
+        
+        # Conteneur défilable pour tout le contenu de la fenêtre
+        self.scroll = ScrollableFrame(self, enable_xscroll=True)
+        self.scroll.pack(fill="both", expand=True)
+        self.root_area = self.scroll.body
+
+        # On utilisera self.scroll.body comme "parent" pour tous les widgets de la fenêtre
+        self.root_area = self.scroll.body
+
 
         # Attributs principaux
         self.df = None
@@ -62,14 +154,14 @@ class Application(tk.Tk):
     # ==========================================================================
 
     def init_ui(self):
-        self.logo_frame = tk.Frame(self, bg="#F7F9FA")
+        self.logo_frame = tk.Frame(self.root_area, bg="#F7F9FA")
         self.logo_frame.pack(fill="x", pady=(20, 10))
         self.afficher_logo()
 
-        titre = ttk.Label(self, text="Outil de suivi des groupes de besoins", style="Title.TLabel", background="#F7F9FA")
+        titre = ttk.Label(self.root_area, text="Outil de suivi des groupes de besoins", style="Title.TLabel", background="#F7F9FA")
         titre.pack(side="top", pady=10)
 
-        btn_ouvrir = ttk.Button(self, text="Ouvrir un fichier élèves (CSV/Excel)", command=self.ouvrir_fichier_eleves)
+        btn_ouvrir = ttk.Button(self.root_area, text="Ouvrir un fichier élèves (CSV/Excel)", command=self.ouvrir_fichier_eleves)
         btn_ouvrir.pack(pady=25)
 
     def afficher_logo(self):
@@ -136,7 +228,7 @@ class Application(tk.Tk):
                 resume += f"{niveau} ({eff} élèves), "
             resume = resume.rstrip(", ") + "\n"
             resume += f"🧩 Nombre de groupes à créer : {self.nb_groupes}\n"
-        self.resume_label = tk.Label(self, text=resume, bg="#F7F9FA", font=("Segoe UI", 11), justify="left", anchor="w")
+        self.resume_label = tk.Label(self.root_area, text=resume, bg="#F7F9FA", font=("Segoe UI", 11), justify="left", anchor="w")
         self.resume_label.pack(pady=(0, 12), fill="x", padx=40)
 
     # ==========================================================================
@@ -146,7 +238,7 @@ class Application(tk.Tk):
     def afficher_champs_repartition(self):
         if self.frame_saisie:
             self.frame_saisie.destroy()
-        self.frame_saisie = tk.Frame(self, bg="#F7F9FA")
+        self.frame_saisie = tk.Frame(self.root_area, bg="#F7F9FA")
         self.frame_saisie.pack(pady=10, padx=30, fill="x")
 
         help_text = ("Entrez le nombre d'élèves par niveau et par groupe.\n"
@@ -175,7 +267,7 @@ class Application(tk.Tk):
 
         if self.frame_boutons:
             self.frame_boutons.destroy()
-        self.frame_boutons = tk.Frame(self, bg="#F7F9FA")
+        self.frame_boutons = tk.Frame(self.root_area, bg="#F7F9FA")
         self.frame_boutons.pack(pady=(18, 8))
         btn_recap = ttk.Button(self.frame_boutons, text="Récapitulatif", command=self.afficher_recapitulatif)
         btn_recap.pack(side="left", padx=10)
@@ -218,15 +310,21 @@ class Application(tk.Tk):
             recap.title("Récapitulatif des groupes")
             recap.state('zoomed')
             recap.configure(bg="#F7F9FA")
+            
+            # Contenu défilable dans la fenêtre récap
+            sf = ScrollableFrame(recap)
+            sf.pack(fill="both", expand=True)
+            container = sf.body  # parent pour les widgets suivants
 
-            ttk.Label(recap, text="Tableau récapitulatif avant édition des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
+
+            ttk.Label(container, text="Tableau récapitulatif avant édition des groupes :", font=("Segoe UI", 13, "bold"), background="#F7F9FA").pack(pady=8)
 
             # Tableau effectif par groupe/niveau/classe
             colonnes = ["Groupe", "Effectif total"] + \
                        [f"Niveau {n}" for n in sorted(self.niveaux)] + \
                        [f"Classe {c}" for c in sorted(self.df['Classe'].unique())]
 
-            tree = ttk.Treeview(recap, columns=colonnes, show="headings", height=len(groupes))
+            tree = ttk.Treeview(container, columns=colonnes, show="headings", height=len(groupes))
             for col in colonnes:
                 tree.heading(col, text=col)
                 tree.column(col, width=100, anchor="center")
@@ -247,10 +345,10 @@ class Application(tk.Tk):
             elif max(effectifs) - min(effectifs) > 2:
                 warning = "⚠️ Les groupes sont déséquilibrés."
             if warning:
-                tk.Label(recap, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
+                tk.Label(container, text=warning, fg="#C75A4A", font=("Segoe UI", 11, "bold"), bg="#F7F9FA").pack(pady=8)
 
             # --- Tableaux d'édition (tksheet)
-            edit_frame = tk.Frame(recap, bg="#F7F9FA")
+            edit_frame = tk.Frame(container, bg="#F7F9FA")
             edit_frame.pack(fill="x", padx=15, pady=8)
 
             sheets = []
@@ -325,7 +423,7 @@ class Application(tk.Tk):
                 update_treeview()
 
             # --- Boutons Valider/Retour
-            btns = ttk.Frame(recap)
+            btns = ttk.Frame(container)
             btns.pack(pady=18)
             def valider_final():
                 groupes_final = [df.copy() for df in group_data]
